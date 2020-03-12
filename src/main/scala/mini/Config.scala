@@ -5,6 +5,8 @@ package mini
 import chisel3.Module
 import freechips.rocketchip.config.{Config, Parameters}
 import junctions._
+import peripherals.PeripherySevenSegKey
+import peripherals.SevenSegParams
 
 class MiniConfig extends Config((site, here, up) => {
     // Core
@@ -23,4 +25,42 @@ class MiniConfig extends Config((site, here, up) => {
       dataBits = 64,
       addrBits = here(XLEN))
   }
+)
+
+class CoreConfig extends Config((site, here, up) => {
+    // Core
+    case XLEN => 32
+    case Trace => false
+    case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
+    case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
+    case BuildBrCond => (p: Parameters) => Module(new BrCondArea()(p))
+  }
+)
+class FPGAConfig extends Config((site, here, up) => {
+    // Core
+    case XLEN => 32
+    case FLEN => 32
+    case Trace => false
+    case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
+    case BuildFALU   => (p: Parameters) => Module(new FALUImpl()(p))
+    case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
+    case BuildBrCond => (p: Parameters) => Module(new BrCondArea()(p))
+
+
+    //Peripherals
+    case PeripherySevenSegKey => List(
+      SevenSegParams(address = 0x100000)
+    )
+  }
+)
+
+class Basys3Peripherals extends Config((site,here,up) => {
+  case PeripherySevenSegKey => List(
+    SevenSegParams(address = BigInt(0x4200000000L))
+  )
+})
+
+class Basys3Config extends Config(
+  new CoreConfig ++
+  new Basys3Peripherals
 )
