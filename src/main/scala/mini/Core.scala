@@ -7,14 +7,19 @@ import chisel3.util.Valid
 import freechips.rocketchip.config.{Field, Parameters}
 
 case object XLEN extends Field[Int]
+case object FLEN extends Field[Int]
 case object Trace extends Field[Boolean]
 case object BuildALU extends Field[Parameters => ALU]
+case object BuildFALU extends Field[Parameters => FALU]
 case object BuildImmGen extends Field[Parameters => ImmGen]
 case object BuildBrCond extends Field[Parameters => BrCond]
+
+
 
 abstract trait CoreParams {
   implicit val p: Parameters
   val xlen = p(XLEN)
+  val flen = p(FLEN)
 }
 
 abstract class CoreBundle(implicit val p: Parameters) extends Bundle with CoreParams

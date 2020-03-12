@@ -26,6 +26,21 @@ object Opcode {
 
   val MEMORY = BigInt("0001111", 2).U(7.W)
   val SYSTEM = BigInt("1110011", 2).U(7.W)
+
+
+
+  // Fixed Point instructions, riscv_spec-v2.2 page 103, table 19.1:  RISC-V base opcode map
+  val LOAD_FP  = BigInt("0000111" ,2).U(7.W)
+  val STORE_FP = BigInt("0100111" ,2).U(7.W)
+  val MADD     = BigInt("1000011" ,2).U(7.W)
+  val MSUB     = BigInt("1000111" ,2).U(7.W)
+  val NMADD    = BigInt("1001111" ,2).U(7.W)
+  val NMSUB    = BigInt("1001011" ,2).U(7.W)
+  val OP_FP    = BigInt("1010011" ,2).U(7.W)
+            
+
+  //Custom instructions
+  val CUSTOM = BigInt("0101010", 2).U(7.W)
 }
 
 object Funct3 {
@@ -57,6 +72,9 @@ object Funct3 {
   val AND  = BigInt("111", 2).U(3.W)
   val SR   = BigInt("101", 2).U(3.W)
 
+  //Custom instruction under custom
+  val SWAP = BigInt("000", 2).U(3.W)
+
   val CSRRW  = BigInt("001", 2).U(3.W)
   val CSRRS  = BigInt("010", 2).U(3.W)
   val CSRRC  = BigInt("011", 2).U(3.W)
@@ -68,6 +86,46 @@ object Funct3 {
 object Funct7 {
   val U = BigInt("0000000", 2).U(7.W)
   val S = BigInt("0100000", 2).U(7.W)
+
+
+  //As defined in riscv-spec, page 133: RV32F Standard Extension
+  val FADD_S     = BigInt("0000000", 2).U(7.W)
+  val FSUB_S     = BigInt("0000100", 2).U(7.W)
+  val FMUL_S     = BigInt("0001000", 2).U(7.W)
+  val FDIV_S     = BigInt("0001100", 2).U(7.W)
+  val FSQRT_S    = BigInt("0101100", 2).U(7.W)
+
+  val FSGNJ_S    = BigInt("0010000", 2).U(7.W)
+  val FSGNJN_S   = BigInt("0010000", 2).U(7.W)
+  val FSGNJX_S   = BigInt("0010000", 2).U(7.W)
+
+  val FMIN_S     = BigInt("0010100", 2).U(7.W)
+  val FMAX_S     = BigInt("0010100", 2).U(7.W)
+
+  val FCVT_W_S   = BigInt("1100000", 2).U(7.W)
+  val FCVT_WU_S  = BigInt("1100000", 2).U(7.W)
+
+  val FMV_X_S    = BigInt("1110000", 2).U(7.W)
+
+  val FEQ_S      = BigInt("1010000", 2).U(7.W)
+  val FLT_S      = BigInt("1010000", 2).U(7.W)
+  val FLE_S      = BigInt("1010000", 2).U(7.W)
+
+  val FCLASS_S   = BigInt("1110000", 2).U(7.W)
+  val FCVT_S_W   = BigInt("1101000", 2).U(7.W)
+  val FCVT_S_WU  = BigInt("1101000", 2).U(7.W)
+  val FMV_W_X    = BigInt("1111000", 2).U(7.W)
+
+  
+}
+
+object RM {
+  val RNE   = BigInt("000", 2).U(3.W)
+  val RTZ   = BigInt("001", 2).U(3.W)
+  val RDN   = BigInt("010", 2).U(3.W)
+  val RUP   = BigInt("011", 2).U(3.W)
+  val RMM   = BigInt("100", 2).U(3.W)
+  val DYN   = BigInt("111", 2).U(3.W)
 }
 
 object Funct12 {

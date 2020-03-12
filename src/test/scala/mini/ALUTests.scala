@@ -12,6 +12,8 @@ class ALUTester(alu: => ALU)(implicit p: freechips.rocketchip.config.Parameters)
   val dut = Module(alu)
   val ctrl = Module(new Control)
   val xlen = p(XLEN)
+  println("Number of instructions:")
+  println(insts.size)
 
   val (cntr, done) = Counter(true.B, insts.size)
   val rs1  = Seq.fill(insts.size)(rnd.nextInt()) map toBigInt
@@ -26,6 +28,7 @@ class ALUTester(alu: => ALU)(implicit p: freechips.rocketchip.config.Parameters)
   val sll  = VecInit((rs1 zip rs2) map { case (a, b) => toBigInt(a.toInt << (b.toInt & 0x1f)).U(xlen.W) })
   val srl  = VecInit((rs1 zip rs2) map { case (a, b) => toBigInt(a.toInt >>> (b.toInt & 0x1f)).U(xlen.W) })
   val sra  = VecInit((rs1 zip rs2) map { case (a, b) => toBigInt(a.toInt >> (b.toInt & 0x1f)).U(xlen.W) })
+  val swap = VecInit((rs1 zip rs2) map { case (a, b) => toBigInt(Integer.reverse(a.toInt)).U(xlen.W)})
   val out = (Mux(dut.io.alu_op === ALU_ADD,  sum(cntr),
              Mux(dut.io.alu_op === ALU_SUB,  diff(cntr),
              Mux(dut.io.alu_op === ALU_AND,  and(cntr),
@@ -36,10 +39,12 @@ class ALUTester(alu: => ALU)(implicit p: freechips.rocketchip.config.Parameters)
              Mux(dut.io.alu_op === ALU_SLL,  sll(cntr),
              Mux(dut.io.alu_op === ALU_SRL,  srl(cntr),
              Mux(dut.io.alu_op === ALU_SRA,  sra(cntr),
-             Mux(dut.io.alu_op === ALU_COPY_A, dut.io.A, dut.io.B))))))))))),
+             Mux(dut.io.alu_op === ALU_SWAP, swap(cntr),
+             Mux(dut.io.alu_op === ALU_COPY_A, dut.io.A, dut.io.B)))))))))))),
              Mux(dut.io.alu_op(0), diff(cntr), sum(cntr)))
 
-  ctrl.io.inst := VecInit(insts)(cntr)
+  val instructions = VecInit(insts)
+  ctrl.io.inst := instructions(cntr)
   dut.io.alu_op := ctrl.io.alu_op
   dut.io.A := VecInit(rs1 map (_.U))(cntr)
   dut.io.B := VecInit(rs2 map (_.U))(cntr)
