@@ -5,11 +5,42 @@ src_dir    = $(base_dir)/src/main
 gen_dir    = $(base_dir)/generated-src
 out_dir    = $(base_dir)/outputs
 
+
+BUILD_DIR := $(base_dir)/builds/basys3Build
+FPGA_DIR := $(base_dir)/fpga-shells/xilinx
+MODEL := FPGAChip
+PROJECT := mini.MainBasys3FPGA
+export CONFIG := FPGAConfig
+export BOARD := basys3
+export BOOTROM_DIR := $(base_dir)/bootrom
+
+
 SBT       = sbt
 SBT_FLAGS = -ivy $(base_dir)/.ivy2
 
 sbt:
 	$(SBT) $(SBT_FLAGS)
+
+fpga: $(gen_dir)/fpga.v
+$(gen_dir)/fpga.v: $(wildcard $(src_dir)/scala/*.scala)
+	cd program && $(MAKE) test
+	$(SBT) $(SBT_FLAGS) "run $(gen_dir)"
+
+fpgatest:
+	echo $(gen_dir)
+	cd program && $(MAKE) test
+	$(SBT) $(SBT_FLAGS) "testOnly TestFPGAMultiProcess $(gen_dir)"
+
+gen_bit:
+	cd vivado && pwd && vivado -mode batch -nolog -source gen_bit.tcl -tclargs basys3RISCV
+
+gen_mcs:
+	cd vivado && pwd && vivado -mode batch -nolog -source gen_mcs.tcl -tclargs basys3RISCV basys3.msc ../program/main.bin
+
+gen_asic:
+	scp generated-src/FPGASoC.v EDA4:./master/top.v 
+	ssh -C EDA4 "cd master && tcsh -c \"source /apps/misc/02205/scripts/setup_synopsys_dv.csh && dc_shell -f scripts/compile.tcl\" " > EDA4_log.txt
+	#TO BE DONE: ssh -C EDA4 "cd master && tcsh -c \"source /apps/misc/02205/scripts/setup_icc.csh && icc_shell -shared_license 
 
 compile: $(gen_dir)/Tile.v
 
@@ -63,3 +94,6 @@ cleanall: clean
 	rm -rf target project/target
 
 .PHONY: sbt compile verilator run-tests run-custom-bmark test clean cleanall
+
+
+include common.mk

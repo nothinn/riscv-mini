@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-
+ 
 def scalacOptionsVersion(scalaVersion: String): Seq[String] = {
   Seq() ++ {
     // If we're building with Scala > 2.11, enable the compile option
@@ -26,6 +26,10 @@ def javacOptionsVersion(scalaVersion: String): Seq[String] = {
   }
 }
 
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+
+
+
 // Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
 val defaultVersions = Seq(
   "chisel3" -> "3.3-SNAPSHOT",
@@ -46,7 +50,10 @@ val commonSettings = Seq(
   resolvers ++= Seq(
     Resolver.sonatypeRepo("snapshots"),
     Resolver.sonatypeRepo("releases")
-  )
+  ),
+  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel-iotesters" % "1.3.0"
+  ),
+  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chiseltest" % "0.2-SNAPSHOT")
 )
 
 val miniSettings = commonSettings ++ Seq(
