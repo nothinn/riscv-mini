@@ -18,6 +18,8 @@ case object BuildBrCond extends Field[Parameters => BrCond]
 case object FREQ extends Field[Int]
 
 
+
+
 abstract trait CoreParams {
   implicit val p: Parameters
   val xlen = p(XLEN)
