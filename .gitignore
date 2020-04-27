@@ -35,3 +35,15 @@ vivado/*
 
 */*.o
 project/
+
+builds/
+
+bin/
+
+dump.txt
+
+obj/
+
+program/tflite_micro
+
+EDA4_log.txt

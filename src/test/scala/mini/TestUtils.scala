@@ -127,6 +127,27 @@ trait TestUtils {
     Cat(rand_csr, rand_rs1, Funct3.CSRRWI, rand_rd, Opcode.SYSTEM),
     Cat(rand_csr, rand_rs1, Funct3.CSRRSI, rand_rd, Opcode.SYSTEM),
     Cat(rand_csr, rand_rs1, Funct3.CSRRCI, rand_rd, Opcode.SYSTEM),
+
+
+    // Fixed Point instructions
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RNE, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RDN, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RNE, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RDN, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RNE, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RDN, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RNE, rand_rd, Opcode.OP_FP),
+    Cat(Funct7.FADD_S, rand_rs2, rand_rs1, RM.RDN, rand_rd, Opcode.OP_FP),
+
+
+//Side 133
+
+
+    //Custom instructions
+    Cat(rand_fn7, rand_rs2, rand_rs1, Funct3.SWAP, rand_rd, Opcode.CUSTOM),
+
+
+    //Others
     ECALL, EBREAK, ERET, nop, rand_inst
   )
 

@@ -14,6 +14,8 @@ import shell.xilinx.basys3shell._
 import sifive.fpgashells.ip.xilinx._
 import Chisel.experimental.chiselName
 
+import units._
+
 class FPGAIO()(implicit val p: Parameters) extends Bundle {
   val host = new HostIO()
   val leds = Output(UInt(16.W))
@@ -21,7 +23,7 @@ class FPGAIO()(implicit val p: Parameters) extends Bundle {
   val sevenSeg = new SevenSegmentIO()
   val spi = new SPIIO()
   val debugBools = Output(Vec(8, new Bool()))
-  val debugUInt = Output(UInt(8.W))
+  val debugUInt = Output(UInt(32.W))
 
   val xadc = new XADCIO()
 
@@ -74,7 +76,7 @@ class CacheToMemIO(implicit val p: Parameters) extends MultiIOModule {
 }
 
 @chiselName
-class FPGASoC(sim : Boolean = true)(implicit val p: Parameters) extends Module {
+class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parameters) extends Module {
   //implicit val p = FPGAParams
   val io = IO(new FPGAIO())
   val core = Module(new Core())
@@ -88,16 +90,18 @@ class FPGASoC(sim : Boolean = true)(implicit val p: Parameters) extends Module {
   io.spi <> spi.pins
   val uart = Module(new UARTMMIO(32000000, 0x80000000L, 2))
   io.uart <> uart.pins
-  
   val xadc = Module(new XADC(3,0x80001000L, sim))
   io.xadc <> xadc.pins
+  
+  val adc = Module(new ADCMMIO(4,0x80002000L))
+  xadc.mmio <> adc.xadc_mmio
 
 
   val peripherals = Seq[MMIOModule](
     sevenSeg,
     spi,
     uart,
-    xadc
+    adc
   )
 
 
@@ -107,10 +111,11 @@ class FPGASoC(sim : Boolean = true)(implicit val p: Parameters) extends Module {
   val memLinks = Seq[MemIO]( //ToDo, define which memories each link should be capable of talking to.
     tester.memLink,
     spi.memLink,
-    uart.memLink
+    uart.memLink,
+    adc.memLink
   )
 
-  val block = Module(new MyMem(4096, 32))
+  val block = Module(new MyMem(268435456/1024/2, 32, memPath))
   val bootromtext = Module(new MyROM(2048, 1, 32, "BootRomtext", "/home/simon/riscv-mini/bootrom/main.dump.text", 0x00L)) //Starts at address 0
   val bootromdata = Module(new MyROM(512, 1, 32, "BootRomdata", "/home/simon/riscv-mini/bootrom/main.dump.data", 0x10000L)) //Starts at address 0x10000
 
@@ -160,7 +165,10 @@ class FPGASoC(sim : Boolean = true)(implicit val p: Parameters) extends Module {
 
   io.debugBools := DontCare
   io.debugBools(0) := spi.memLink.req.valid
-  io.debugUInt := spi.memLink.req.bits.data
+  io.debugBools(1) := core.io.icache.req.bits.addr =/= 0x1c0.U
+  io.debugUInt := core.io.icache.req.bits.addr
+
+  
 
 }
 

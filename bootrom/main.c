@@ -31,12 +31,13 @@ int main()
 
     printstr2("Hello World\n",12);
 
+    /*
     SPI_START_ADDR = BLOCK_MEM;
     SPI_FLASH_START_ADDR = 0x00200000;
-    SPI_FLASH_END_ADDR = 0x00201000;
+    SPI_FLASH_END_ADDR = 0x00291000;
 
     while(SPI_STATUS != 0); //Wait for flash to have loaded in the entire address range
-
+    */
 
     //Jump to main program.
     __asm volatile("nop");

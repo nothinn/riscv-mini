@@ -11,6 +11,12 @@ import mini._
 import firrtl.transforms.DontTouchAnnotation
 import org.scalatest.selenium.WebBrowser.add
 
+
+import chisel3.util.experimental.loadMemoryFromFile
+import firrtl.annotations.MemoryLoadFileType
+
+
+
 trait AddrInfo {
   var startAddr: Long
   var endAddr:   Long
@@ -50,7 +56,7 @@ trait MemModule extends Module {
 
 
 
-class MyMem(val size: Int, XLEN: Int)(implicit val p: Parameters) extends MemModule {
+class MyMem(val size: Int, XLEN: Int, memPath : String = "")(implicit val p: Parameters) extends MemModule {
   val io = IO(Flipped(new MemIO))
 
   val mem = SyncReadMem(size, Vec(XLEN / 8 * 2, UInt(8.W) )) //*2 because we need to be able to read/write on a double word
@@ -63,29 +69,38 @@ class MyMem(val size: Int, XLEN: Int)(implicit val p: Parameters) extends MemMod
   val dataVec = Wire(Vec(XLEN / 8 * 2, UInt(8.W)))
   val maskVec = Wire(Vec(XLEN / 8 * 2, Bool()))
 
+  //For preloading memory in simulation
+  if (memPath.length() > 0){
+    loadMemoryFromFile(mem, memPath)
+  }
+
+
+ 
+  
   for (i <- 0 until XLEN / 8 * 2) {
-    dataVec(i) :=(data<<(addr(1,0)*8.U))((i + 1) * 8 - 1, i * 8)
+    dataVec(i) :=(data<<(addr(2,0)*8.U))((i + 1) * 8 - 1, i * 8)
   }
 
   val maskWire = Wire(UInt((XLEN/8*2).W))
 
-  maskWire := (mask<<addr(1,0))
+  maskWire := (mask<<addr(2,0))
 
   maskVec := maskWire.asBools
 
   io.req.ready := 1.B
 
-  val outputData = Wire(UInt(XLEN.W))
+  val outputData = Wire(UInt((XLEN*2).W))
 
-  outputData := mem.read(addr >> 2, reqVal).asUInt
+  //outputData := mem.read(addr >> 3), reqVal.asUInt TODO: Make such that the memory req valid is actually working (Doesn't always work when accelerator accesses memory in front of processor)
+  outputData := mem.read(addr >> 3).asUInt
 
   
   //Default
-  io.resp.bits.data := (outputData >> (addr(1,0) * 8.U))(XLEN-1, 0)
+  io.resp.bits.data := (outputData >> (RegNext(addr(2,0)) * 8.U))(XLEN-1, 0)
 
   io.resp.valid := 1.B //Response is always valid. May need to actually work on output
 
-  mem.write(addr >> 2, dataVec, maskVec)
+  mem.write(addr >> 3, dataVec, maskVec)
 
 }
 

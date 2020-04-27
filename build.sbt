@@ -28,7 +28,8 @@ def javacOptionsVersion(scalaVersion: String): Seq[String] = {
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
-
+//This testoption is to enable parallel execution of tests in a suite.
+//testOptions in Test += Tests.Argument("-P")
 
 // Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
 val defaultVersions = Seq(

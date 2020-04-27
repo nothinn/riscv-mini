@@ -17,6 +17,7 @@ case object ISATests extends TestType {
     "sb", "sh", "sw", "lb", "lbu", "lh", "lhu", "lui", "lw",
     "beq", "bge", "bgeu", "blt", "bltu", "bne", "j", "jal", "jalr",
     "or", "ori", "sll", "slli", "slt", "slti", "sra", "srai", "sub", "xor", "xori"
+    //,"swap"
   ) map (t => s"rv32ui-p-${t}")) ++ (List(
     "sbreak", "scall", "illegal", "ma_fetch", "ma_addr", "csr" //, TODO: "timer"
   ) map (t => s"rv32mi-p-${t}"))

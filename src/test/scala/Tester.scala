@@ -16,6 +16,9 @@ import org.scalatest.selenium.WebBrowser.add
 import chiseltest._
 import chiseltest.experimental.TestOptionBuilder._
 import chiseltest.internal.{VerilatorBackendAnnotation, WriteVcdAnnotation}
+import org.scalatest.prop.Tables.Table
+import java.io._
+import chiseltest.legacy.backends.verilator.VerilatorFlags
 
 class TestFPGAReset(dut: FPGASoC) extends PeekPokeTester(dut) {
   val frequency = 32000000
@@ -29,22 +32,278 @@ class TestFPGAReset(dut: FPGASoC) extends PeekPokeTester(dut) {
 
 }
 
+
+
+class MemTesterLinear extends FlatSpec with ChiselScalatestTester with Matchers {
+  behavior of ("Pre-loaded memory")
+
+
+  val path = "program/main.hex"
+
+
+  "mem" should "go through all the values" in {
+    implicit val p = (new FPGAConfig).toInstance
+
+
+      test(new MyMem(4096, 32, path)).withAnnotations(Seq(VerilatorBackendAnnotation)) { dut => 
+        
+        dut.io.req.valid.poke(1.B)
+        
+        for(i <- 0 until 4096/4){
+          dut.io.req.bits.addr.poke((i*4).U)
+          dut.clock.step()
+        }
+        
+      }
+    }
+  
+
+}
+
+
+
+
+class TestFirmwareLogging extends FlatSpec with ChiselScalatestTester with Matchers{
+  //This test logs the value of PC every cycle, to see where the most time is spent.
+  behavior of("FPGA SoC system")
+
+  //val path = "program/tests/tf_micro_speech_test/bin/main.hex"
+  val path = "program/tests/tf_micro_speech/bin/main.hex"
+  
+  "tf_micro_speech" should "print ~~~ALL TESTS PASSED~~~" in {
+
+      implicit val p = (new FPGAConfig).toInstance
+
+      test(new FPGASoC(memPath = path)).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation, VerilatorFlags(Seq("--trace-depth 1", "--threads 12")))) { dut => 
+
+        val pcMap = HashMap[Long, Long]().withDefaultValue(0.toLong)
+
+        fork{
+          while(true){
+
+            dut.io.debugBools(1).expect(1.B)
+            pcMap(dut.io.debugUInt.peek.litValue.toLong) += 1
+            dut.clock.step(1)
+          }
+        }
+
+        val MAXSTEPS = 1000000000
+        dut.clock.setTimeout(MAXSTEPS + 4)
+
+        //UART reader. Outputs a line on a line end.
+        val baudrate = 115200
+        val frequency= 32000000
+        var string = ""
+        val stepsPerBit = (frequency / baudrate).toInt
+        
+        dut.clock.step(10)
+
+        var done = false
+        
+        while(true & !done){
+
+          
+
+          var char = 0
+          
+          //Look for start bit falling_edge
+          while(dut.io.uart.tx.peek.litValue.toInt == 1){
+            dut.clock.step(1)
+          }
+          
+          //Move ahead half a bit and a half, which should be the middle of the first bit
+          dut.clock.step(stepsPerBit/2)
+          dut.clock.step(stepsPerBit)
+          
+          for(i <- 0 until 8){
+            char = (char)  + (dut.io.uart.tx.peek.litValue.toInt << i)
+            
+            //Step one bitwidth
+            dut.clock.step(stepsPerBit)
+          }
+
+          char = char & 0xff
+          string = string + char.toChar
+
+          //println(char.toChar)
+        
+          //print("Got char: ")
+          //println(char.toHexString)
+          
+          if (char.toChar == '\n') {
+
+            if(string.contains("~~~ALL TESTS PASSED~~~")){
+              finalize()
+              done = true
+            }
+            if(string.contains("~~~SOME TESTS FAILED~~~")){
+              finalize()
+              done = true
+              dut.reset.expect(1.B) //Fails on this assertion
+            }
+            
+
+            print("Got string: ")
+            print(string)
+            string = ""
+          }
+
+          //Pass the stop bit
+        }
+
+
+        //Finalize by writing pcMap to file:
+        val mapPath = path + ".log.txt"
+
+        val pw = new PrintWriter(new File(mapPath))
+
+        dut.clock.step(10)
+
+        for((key, value) <- pcMap.toSeq.sortBy(_._1)) pw.write("Key: 0x"+key.toHexString+", value:"+value.toString()+"\n")
+      
+        pw.close
+
+        dut.clock.step(10)
+      }
+
+
+  }
+
+
+}
+
+
+
+class TestAllFirmwareTest extends FlatSpec with ChiselScalatestTester with Matchers with ParallelTestExecution {
+
+
+  def readFile(filename: String): Seq[String] = {
+    val bufferedSource = io.Source.fromFile(filename)
+    val lines = (for (line <- bufferedSource.getLines()) yield line).toList
+    bufferedSource.close
+    lines
+  }
+
+  behavior of("FPGA SoC system")
+
+  //Read all of the available test paths:
+  //val paths = Seq("/home/simon/riscv-mini/program/tests/print_test/bin/main.hex")
+  val paths = readFile("program/tests/testList.txt")
+
+  
+
+  paths.foreach{ path =>
+
+    var testName = path.substring(14)
+    testName = testName.substring(0,testName.indexOf("."))
+
+    testName should "print ~~~ALL TESTS PASSED~~~" in {
+
+      //val hexPath = "/home/simon/riscv-mini/program/main.hex"
+      val hexPath = path
+
+      implicit val p = (new FPGAConfig).toInstance
+
+      test(new FPGASoC(memPath = hexPath)).withAnnotations(Seq(VerilatorBackendAnnotation)) { dut => 
+
+
+        fork{
+          while(true){
+
+            dut.io.debugBools(1).expect(1.B)
+            dut.clock.step(1)
+          }
+        }
+
+        val MAXSTEPS = 1000000000
+        dut.clock.setTimeout(MAXSTEPS + 4)
+
+        //UART reader. Outputs a line on a line end.
+        val baudrate = 115200
+        val frequency= 32000000
+        var string = ""
+        val stepsPerBit = (frequency / baudrate).toInt
+        
+        dut.clock.step(10)
+
+        var done = false
+        
+        while(true & !done){
+
+          
+
+          var char = 0
+          
+          //Look for start bit falling_edge
+          while(dut.io.uart.tx.peek.litValue.toInt == 1){
+            dut.clock.step(1)
+          }
+          
+          //Move ahead half a bit and a half, which should be the middle of the first bit
+          dut.clock.step(stepsPerBit/2)
+          dut.clock.step(stepsPerBit)
+          
+          for(i <- 0 until 8){
+            char = (char)  + (dut.io.uart.tx.peek.litValue.toInt << i)
+            
+            //Step one bitwidth
+            dut.clock.step(stepsPerBit)
+          }
+
+          char = char & 0xff
+          string = string + char.toChar
+
+          //println(char.toChar)
+        
+          //print("Got char: ")
+          //println(char.toHexString)
+          
+          if (char.toChar == '\n') {
+
+            if(string.contains("~~~ALL TESTS PASSED~~~")){
+              finalize()
+              done = true
+            }
+            if(string.contains("~~~SOME TESTS FAILED~~~")){
+              finalize()
+              done = true
+              dut.reset.expect(1.B) //Fails on this assertion
+            }
+            
+
+            print("Got string: ")
+            print(string)
+            string = ""
+          }
+
+          //Pass the stop bit
+        }
+
+      }
+  }
+
+  }
+
+}
+
+
 class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matchers {
   behavior.of("FPGA SoC System")
 
-  val path = "program/main.hex"
+  val path = "program/main.fixed.hex"
+  
 
   "SoC" should "print Hello world" in {
 
     implicit val p = (new FPGAConfig).toInstance
 
-    test(new FPGASoC).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new FPGASoC(memPath = "program/main.hex")).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       fork {
 
         val hashMap: HashMap[Int, Int] = new HashMap() //Address to byte
 
         val bufferedSource = Source.fromFile(path)
-        println("Reading in " + path + " to bootrom")
+        println("Reading in " + path + " to SPI memory")
 
         val pattern =
           raw":([0-9A-F][0-9A-F])([0-9A-F][0-9A-F][0-9A-F][0-9A-F])([0-9A-F][0-9A-F])([0-9A-F]*)([0-9A-F][0-9A-F])".r
@@ -77,7 +336,7 @@ class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matc
         }
         bufferedSource.close
 
-        val MAXSTEPS = 1000000
+        val MAXSTEPS = 10000000
         dut.clock.setTimeout(MAXSTEPS + 4)
         var steps = 0
 
@@ -187,8 +446,10 @@ class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matc
           char = char & 0xff
           string = string + char.toChar
 
-          print("Got char: ")
-          println(char.toHexString)
+          //println(char.toChar)
+        
+          //print("Got char: ")
+          //println(char.toHexString)
           
           if (char.toChar == '\n') {
             print("Got string: ")
@@ -202,7 +463,7 @@ class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matc
       }
 
       //Number of steps in total
-      dut.clock.step(500000)
+      dut.clock.step(5000000)
     }
   }
 }
@@ -489,7 +750,7 @@ class TestFPGA extends FlatSpec with Matchers {
     chisel3.iotesters.Driver.execute(
       Array(
         "--backend-name",
-        "verilator",
+        "VCS",
         "--generate-vcd-output",
         "on",
         "--target-dir",

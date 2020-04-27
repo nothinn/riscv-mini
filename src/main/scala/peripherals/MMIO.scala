@@ -28,6 +28,9 @@ trait MMIOModule extends MultiIOModule {
   val moduleName : String
   val address: Long
   val mmio : MMIO
-  val pins : Bundle
   val numBytes : Int //Number of byte addressable registers.
+}
+
+trait PinIO{
+  val pins : Bundle
 }

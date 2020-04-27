@@ -28,7 +28,7 @@ $(gen_dir)/fpga.v: $(wildcard $(src_dir)/scala/*.scala)
 
 fpgatest:
 	echo $(gen_dir)
-	cd program && $(MAKE) test
+	#cd program && $(MAKE) test
 	$(SBT) $(SBT_FLAGS) "testOnly TestFPGAMultiProcess $(gen_dir)"
 
 gen_bit:

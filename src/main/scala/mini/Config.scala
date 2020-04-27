@@ -11,6 +11,7 @@ import peripherals.SevenSegParams
 class MiniConfig extends Config((site, here, up) => {
     // Core
     case XLEN => 32
+    case FLEN => 32
     case Trace => false
     case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
     case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
@@ -29,7 +30,9 @@ class MiniConfig extends Config((site, here, up) => {
 
 class CoreConfig extends Config((site, here, up) => {
     // Core
+    case ARCH => Seq('i')
     case XLEN => 32
+    case FLEN => 32
     case Trace => false
     case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
     case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
@@ -37,14 +40,17 @@ class CoreConfig extends Config((site, here, up) => {
   }
 )
 class FPGAConfig extends Config((site, here, up) => {
-    // Core
+    // Core rv32i
+    case ARCH => Seq('i','m')
     case XLEN => 32
     case FLEN => 32
     case Trace => false
     case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
     case BuildFALU   => (p: Parameters) => Module(new FALUImpl()(p))
+    case BuildMALU   => (p: Parameters) => Module(new MALUImplSingleCycle()(p))
     case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
     case BuildBrCond => (p: Parameters) => Module(new BrCondArea()(p))
+    case FREQ => 2000000
 
 
     //Peripherals

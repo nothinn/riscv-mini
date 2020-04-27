@@ -47,8 +47,13 @@ _start:
   li  x30,0
   li  x31,0
 
-  li sp, 0x30000000
+  li sp, 0x20100000
 
+  .option push
+  .option norelax
+  la gp, __global_pointer$
+  .option pop
+  
   j _init
 
   .align 2

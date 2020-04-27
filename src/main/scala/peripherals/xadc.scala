@@ -3,7 +3,8 @@ package peripherals
 import chisel3._
 import chisel3.util._
 
-import freechips.rocketchip.config.{Field, Parameters}
+import freechips.rocketchip.config._
+import mini.FREQ
 
 class XADCIO extends Bundle {
   val vauxp6 = Input(Bool())
@@ -83,14 +84,17 @@ class XLXI_7_sim extends Module with XLXI_IO {
   io.drdy_out := ready
 }
 
-class XADC(val index: Int, val address: Long, val sim: Boolean)(implicit val p: Parameters) extends MMIOModule {
+class XADC(val index: Int, val address: Long, val sim: Boolean)(implicit val p: Parameters) extends MMIOModule{// with MemLink {
   val mmio = IO(new MMIO())
   val pins = IO(new XADCIO())
+  //val memLink = IO(new MemIO())
+
 
   val numBytes = 64 * 4 //64 registers, word addressed
   val moduleName = "XADC"
 
   val xadcModule = (if (sim) Module(new XLXI_7_sim()) else Module(new XLXI_7()))
+
 
   val xadc = xadcModule.io
 
