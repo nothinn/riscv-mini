@@ -26,6 +26,7 @@ class FPGAIO()(implicit val p: Parameters) extends Bundle {
   val debugUInt = Output(UInt(32.W))
 
   val xadc = new XADCIO()
+  val gpio = new GPIOIO()
 
 }
 
@@ -83,28 +84,32 @@ class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parame
 
   //Define peripherals
   val sevenSeg = Module(new SevenSegmentMMIO(0x80000010L, 0, "SevenSegmentModule"))
-  io.sevenSeg := sevenSeg.pins
-
-  
+  io.sevenSeg := sevenSeg.pins  
   val spi = Module(new SPIMMIO(0x40000000, 1))
   io.spi <> spi.pins
   val uart = Module(new UARTMMIO(32000000, 0x80000000L, 2))
   io.uart <> uart.pins
   val xadc = Module(new XADC(3,0x80001000L, sim))
   io.xadc <> xadc.pins
-  
   val adc = Module(new ADCMMIO(4,0x80002000L))
   xadc.mmio <> adc.xadc_mmio
+  val gpio = Module(new GPIOMMIO(0x80004000L,6))
+  gpio.pins <> io.gpio
+
+  //Accelerators
+  val fft = Module(new FFTMMIO(0x80003000L,5))
 
 
-  val peripherals = Seq[MMIOModule](
+  val modules = Seq[MMIOModule](
     sevenSeg,
     spi,
     uart,
-    adc
+    adc,
+    fft,
+    gpio
   )
 
-
+  
   //Test module that makes memory requests to check robustness
   val tester = Module(new MemTester())
 
@@ -112,11 +117,19 @@ class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parame
     tester.memLink,
     spi.memLink,
     uart.memLink,
-    adc.memLink
+    adc.memLink,
+    fft.memLink
   )
 
-  val block = Module(new MyMem(268435456/1024/2, 32, memPath))
-  val bootromtext = Module(new MyROM(2048, 1, 32, "BootRomtext", "/home/simon/riscv-mini/bootrom/main.dump.text", 0x00L)) //Starts at address 0
+
+  val block = Module(new MyMem(262144/4, 32, memPath)) //256 KiB
+  //val block = Module(new MyMem(268435456, 32, memPath))
+
+  val audioSamples = Module(new MyMem(128*2*4, 32))
+  audioSamples.io.startAddr = 0x30000000L
+  audioSamples.io.endAddr = 0x30000400L
+  
+  val bootromtext = Module(new MyROM(2048, 1, 32, "BootRomtext", "/home/simon/riscv-mini/bootrom/main.dump.text", 0x00L))   //Starts at address 0
   val bootromdata = Module(new MyROM(512, 1, 32, "BootRomdata", "/home/simon/riscv-mini/bootrom/main.dump.data", 0x10000L)) //Starts at address 0x10000
 
   bootromtext.memLink.startAddr = bootromtext.startAddress
@@ -135,13 +148,14 @@ class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parame
 
   val memories = Seq[MemIO](
     block.io,
+    audioSamples.io,
     bootromtext.memLink,
     bootromdata.memLink
   )
 
-  val memArbiter = Module(new MemArbiterFPGA(peripherals, memLinks, memories))
+  val memArbiter = Module(new MemArbiterFPGA(modules, memLinks, memories))
 
-  for ((mmio, index) <- peripherals.zipWithIndex) {
+  for ((mmio, index) <- modules.zipWithIndex) {
     memArbiter.io.mmios(index) <> mmio.mmio
   }
 
@@ -152,6 +166,7 @@ class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parame
     memArbiter.io.memories(index) <> mem
   }
 
+  
   core.io.icache <> memArbiter.io.icache
   core.io.dcache <> memArbiter.io.dcache
 
@@ -172,71 +187,80 @@ class FPGASoC(sim : Boolean = true, memPath: String = "")(implicit val p: Parame
 
 }
 
-class Basys3FPGASoC()(implicit override val p: Parameters) extends Basys3Shell {
+class Basys3FPGASoC(memPath: String = "")(implicit override val p: Parameters) extends Basys3Shell {
 
   withClockAndReset(clock_32MHz, resetIn) {
     implicit val p = (new FPGAConfig).toInstance
 
-    val dut = Module(new FPGASoC(sim=false))
-
-
+    val soc = Module(new FPGASoC(sim=false, memPath= memPath))
 
     //Connecting the XADC
-    dut.io.xadc.vauxn6 := vauxn6 
-    dut.io.xadc.vauxn7 := vauxn7 
-    dut.io.xadc.vauxn14 := vauxn14 
-    dut.io.xadc.vauxn15 := vauxn15 
-    dut.io.xadc.vn_in := vn_in
+    soc.io.xadc.vauxn6 := vauxn6 
+    soc.io.xadc.vauxn7 := vauxn7 
+    soc.io.xadc.vauxn14 := vauxn14 
+    soc.io.xadc.vauxn15 := vauxn15 
+    soc.io.xadc.vn_in := vn_in
 
-    dut.io.xadc.vauxp6 := vauxp6 
-    dut.io.xadc.vauxp7 := vauxp7 
-    dut.io.xadc.vauxp14 := vauxp14 
-    dut.io.xadc.vauxp15 := vauxp15 
-    dut.io.xadc.vp_in := vp_in
-
-
+    soc.io.xadc.vauxp6 := vauxp6 
+    soc.io.xadc.vauxp7 := vauxp7 
+    soc.io.xadc.vauxp14 := vauxp14 
+    soc.io.xadc.vauxp15 := vauxp15 
+    soc.io.xadc.vp_in := vp_in
     
-    
-
-
+    /*
     //LEDs for debugging purposes
     IOBUF(LED(0), clock_32MHz.asUInt().asBool())
     IOBUF(LED(1), resetIn.asBool())
-    IOBUF(LED(2), dut.io.debugBools(0).asBool())
+    IOBUF(LED(2), soc.io.debugBools(0).asBool())*/
 
-    for (i <- 8 until 16) {
-      IOBUF(LED(i), dut.io.debugUInt(i - 8))
+    for (i <- 0 until 16) {
+      IOBUF(LED(i), soc.io.gpio.leds(i))
     }
+
+    for (i <- 0 until 16) {
+      soc.io.gpio.switches(i) := IOBUF(sw(i))
+    }
+
+
+    //Buttons
+    soc.io.gpio.but_l := IOBUF(btnL)
+    soc.io.gpio.but_r := IOBUF(btnR)
+    soc.io.gpio.but_d := IOBUF(btnD)
+
+    soc.io.gpio.but_c := 0.B //Used for reset
+    soc.io.gpio.but_u := 0.B //Used for MMCM reset
+
+    
 
     //Seven Segment
     for (i <- 0 until 7) {
-      IOBUF(seg(i), dut.io.sevenSeg.seg(i))
+      IOBUF(seg(i), soc.io.sevenSeg.seg(i))
     }
 
     for (i <- 0 until 4) {
-      IOBUF(an(i), dut.io.sevenSeg.an(i))
+      IOBUF(an(i), soc.io.sevenSeg.an(i))
     }
-    IOBUF(dp, dut.io.sevenSeg.dp)
+    IOBUF(dp, soc.io.sevenSeg.dp)
 
-    dut.io.uart.rx := IOBUF(RsRx)
+    soc.io.uart.rx := IOBUF(RsRx)
 
-    IOBUF(RsTx, dut.io.uart.tx)
+    IOBUF(RsTx, soc.io.uart.tx)
 
-    dontTouch(dut.io.host)
-    dut.io.host <> DontCare
+    dontTouch(soc.io.host)
+    soc.io.host <> DontCare
 
     //Map SPI to jtag at first
-    IOBUF(JA(0), dut.io.spi.chipSelect_n)
-    IOBUF(JA(1), dut.io.spi.sck)
-    IOBUF(JA(2), dut.io.spi.sdi)
-    IOBUF(JA(3), dut.io.spi.wp_n)
-    IOBUF(JA(4), dut.io.spi.hld_n)
+    IOBUF(JA(0), soc.io.spi.chipSelect_n)
+    IOBUF(JA(1), soc.io.spi.sck)
+    IOBUF(JA(2), soc.io.spi.sdi)
+    IOBUF(JA(3), soc.io.spi.wp_n)
+    IOBUF(JA(4), soc.io.spi.hld_n)
 
-    dut.io.spi.sdo := IOBUF(QspiSO)
-    IOBUF(QspiCSn, dut.io.spi.chipSelect_n)
-    IOBUF(QspiSI, dut.io.spi.sdi)
-    IOBUF(QspiWn, dut.io.spi.wp_n)
-    IOBUF(QspiHoldn, dut.io.spi.hld_n)
+    soc.io.spi.sdo := IOBUF(QspiSO)
+    IOBUF(QspiCSn, soc.io.spi.chipSelect_n)
+    IOBUF(QspiSI, soc.io.spi.sdi)
+    IOBUF(QspiWn, soc.io.spi.wp_n)
+    IOBUF(QspiHoldn, soc.io.spi.hld_n)
 
     //Connect clock for qspi through STARTUPE2
     val startupe2 = Module(new STARTUPE2())
@@ -245,7 +269,7 @@ class Basys3FPGASoC()(implicit override val p: Parameters) extends Basys3Shell {
     startupe2.io.GTS := 0.U
     startupe2.io.KEYCLEARB := 0.U
     startupe2.io.PACK := 0.U
-    startupe2.io.USRCCLKO := dut.io.spi.sck
+    startupe2.io.USRCCLKO := soc.io.spi.sck
     startupe2.io.USRCCLKTS := 0.U
     startupe2.io.USRDONEO := 0.U
     startupe2.io.USRDONETS := 1.U
