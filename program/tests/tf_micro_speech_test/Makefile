@@ -2,7 +2,7 @@
 RISCV_GCC     ?= riscv64-unknown-elf-gcc
 RISCV_OBJDUMP ?= riscv64-unknown-elf-objdump
 RISCV_OBJCOPY ?= riscv64-unknown-elf-objcopy
-
+export RISCV_ARCH    ?= rv32im
 
 
 default:

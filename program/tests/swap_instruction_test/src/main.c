@@ -3,6 +3,24 @@
 
 
 
+int swap(int a){
+    volatile int b = 42;
+    __asm volatile("custom %[result], %[value], %[value2]" : [result] "=r" (a) : [value] "r" (b), [value2] "r" (a));
+    return b;
+}
+
+int swapTest(){
+    int a = 0xaabbccdd;
+
+    int b = swap(a);
+
+    if(b == 0xddccbbaa){
+        return 0;
+    }else{
+        return 8;
+    }
+}
+
 int addTest(){
 
     int a = 10;
@@ -46,6 +64,7 @@ int main(){
     test += addTest();
     test += mulTest();
     test += divTest();
+    test += swapTest();
 
     if(test == 0){
         printstr(TEST_SUCCESS_STRING,TEST_SUCCESS_STRING_LENGTH);

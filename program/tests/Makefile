@@ -4,11 +4,11 @@
 
 SUBDIRS := $(wildcard */.)
 
-export RISCV_ARCH = rv32im
+export RISCV_ARCH = rv32i
 
 
 #Mark certain folders as don't run:
-DONTRUN := #tf_hello_world_test/.
+DONTRUN := tf_micro_speech_test/. print_test/. simple_op_test/. swap_instruction_test/. #tf_hello_world_test/.
 
 
 
