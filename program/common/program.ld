@@ -1,22 +1,26 @@
 OUTPUT_ARCH( "riscv" )
 ENTRY(_start)
 
-
-
-
 MEMORY{
-/*  BOOTROM (rx) : ORIGIN = 0x0, LENGTH = 2K*/
-  BLOCKRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 536K
+  BLOCKRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
 }
 
 SECTIONS
 {
+  PROVIDE(__stack_top$ = ORIGIN(BLOCKRAM) + LENGTH(BLOCKRAM));
+
   . = 0x20000000;
   .text.init : { *(.text.init) }
-  .text : { *(.text) }
+  .text : {
+        KEEP(*(.stack))
+        KEEP(*(.vectors))
+        KEEP(*(.text))
+        . = ALIGN(4);
+        KEEP(*(.rodata))
+        . = ALIGN(4);
+    } >BLOCKRAM
 
-  .sdata    :
-  {
+  .sdata : {
     __global_pointer$ = . + 0x800;
-  }
+  } >BLOCKRAM
 }
