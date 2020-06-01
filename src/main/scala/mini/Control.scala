@@ -10,6 +10,8 @@ object Control {
   val Y = true.B
   val N = false.B
 
+  val M = true.B
+
   // pc_sel
   val PC_4   = 0.U(2.W)
   val PC_ALU = 1.U(2.W)
@@ -124,14 +126,14 @@ object Control {
     ERET  -> List(PC_EPC, A_XXX,  B_XXX, IMM_X, ALU_XXX   , BR_XXX, Y, ST_XXX, LD_XXX, WB_CSR, N, CSR.P, N, MALU_XXX),
     WFI   -> List(PC_4  , A_XXX,  B_XXX, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, N, CSR.N, N, MALU_XXX),
     
-    MUL   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_MUL),
-    MULH  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_MULH),
-    MULHSU-> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_MULHSU),
-    MULHU -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_MULHU),
-    DIV   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_DIV),
-    DIVU  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_DIVU),
-    REM   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_REM),
-    REMU  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_REMU),
+    MUL   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_MUL),
+    MULH  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_MULH),
+    MULHSU-> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_MULHSU),
+    MULHU -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_MULHU),
+    DIV   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_DIV),
+    DIVU  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_DIVU),
+    REM   -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_REM),
+    REMU  -> List(PC_4  , A_RS1,  B_RS2, IMM_X, ALU_XXX   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, M, MALU_REMU),
     
 
     //Fixed Point load and store which needs to use the normal ALU
@@ -140,7 +142,6 @@ object Control {
 
     //Custom instructions
     SWAP  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_SWAP  , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_XXX)
-    //XORI  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_XOR   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N, MALU_XXX),
     )
 }
 
