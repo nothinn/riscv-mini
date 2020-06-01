@@ -25,7 +25,6 @@ class Datapath(implicit val p: Parameters) extends Module with CoreParams {
   val io      = IO(new DatapathIO)
   val csr     = Module(new CSR)
   val regFile = Module(new RegFile)
-  val f_regFile= Module(new FRegFile)
   val alu     = p(BuildALU)(p)
   /*
   if(arch.contains('m')){
@@ -37,9 +36,10 @@ class Datapath(implicit val p: Parameters) extends Module with CoreParams {
   val usingMul= p(ARCH).contains('m')
 
   val f_alu = (if (usingFP) p(BuildFALU)(p))
+  val f_regFile= Module(new FRegFile)
+
   val m_alu = (if (usingMul) p(BuildMALU)(p))
 
-  val mulOp = WireDefault(0.B)
   
   val immGen  = p(BuildImmGen)(p)
   val brCond  = p(BuildBrCond)(p)
@@ -72,13 +72,21 @@ class Datapath(implicit val p: Parameters) extends Module with CoreParams {
  
   /****** Fetch *****/
   val started = RegNext(reset.asBool)
-  val stall = !io.icache.resp.valid || !io.dcache.resp.valid
+
+  val regStall = WireDefault(0.B) //Stalls if a register does not have its value yet
+  //This can happen on multicycle operations, such as div and rem.
+
+  val counter = Counter(20)
+  //regStall := counter.inc()
+
+  val stall = !io.icache.resp.valid || !io.dcache.resp.valid || regStall
   val pc   = RegInit(Const.PC_START.U(xlen.W) - 4.U(xlen.W))
   val npc  = Mux(stall, pc, Mux(csr.io.expt, csr.io.evec,
              Mux(io.ctrl.pc_sel === PC_EPC,  csr.io.epc,
              Mux(io.ctrl.pc_sel === PC_ALU || brCond.io.taken, alu.io.sum >> 1.U << 1.U,
              Mux(io.ctrl.pc_sel === PC_0, pc, pc + 4.U)))))
-  val inst = Mux(started || io.ctrl.inst_kill || io.f_ctrl.inst_kill || brCond.io.taken || csr.io.expt, Instructions.NOP, io.icache.resp.bits.data)
+  val inst = (if (usingFP) Mux(started || io.ctrl.inst_kill || io.f_ctrl.inst_kill || brCond.io.taken || csr.io.expt, Instructions.NOP, io.icache.resp.bits.data)
+              else Mux(started || io.ctrl.inst_kill || brCond.io.taken || csr.io.expt, Instructions.NOP, io.icache.resp.bits.data))
   pc                      := npc 
   io.icache.req.bits.addr := npc
   io.icache.req.bits.data := 0.U
@@ -112,9 +120,11 @@ class Datapath(implicit val p: Parameters) extends Module with CoreParams {
   val f_rs2_addr = fe_inst(24, 20)
   val f_rs3_addr = fe_inst(31,27)
 
-  f_regFile.io.raddr1 := f_rs1_addr
-  f_regFile.io.raddr2 := f_rs2_addr
-  f_regFile.io.raddr3 := f_rs3_addr
+  //if (usingFP){
+    f_regFile.asInstanceOf[FRegFile].io.raddr1 := f_rs1_addr
+    f_regFile.asInstanceOf[FRegFile].io.raddr2 := f_rs2_addr
+    f_regFile.asInstanceOf[FRegFile].io.raddr3 := f_rs3_addr
+  //}
   
 
 
@@ -257,12 +267,13 @@ class Datapath(implicit val p: Parameters) extends Module with CoreParams {
     F_WB_REG -> ew_alu.zext
   ) )
 
-  dontTouch(f_regWrite)
-//  dontTouch(f_wb_sel)
 
-  f_regFile.io.wen   := f_wb_en && !stall && !csr.io.expt 
-  f_regFile.io.waddr := f_wb_rd_addr
-  f_regFile.io.wdata := f_regWrite.asUInt
+
+  //if(usingFP){
+    f_regFile.asInstanceOf[FRegFile].io.wen   := f_wb_en.asInstanceOf[Bool] && !stall && !csr.io.expt 
+    f_regFile.asInstanceOf[FRegFile].io.waddr := f_wb_rd_addr
+    f_regFile.asInstanceOf[FRegFile].io.wdata := f_regWrite.asUInt
+  //}
 
   
 
