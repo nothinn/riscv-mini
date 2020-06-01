@@ -200,7 +200,7 @@ class MemArbiterFPGA(peripheries: Seq[MMIOModule], memoryLinks: Seq[MemIO], mems
       iInnerValid := 1.B // Always high when waiting for itself
       dInnerValid := io.dcache.req.valid
 
-      io.icache.resp.bits.data := DontCare
+      io.icache.resp.bits.data := iDataOutReg
 
       when(RegNext(state === sWaitI)) { //If been waiting for more than one cycle
         io.dcache.resp.bits.data := dDataOutReg
@@ -222,7 +222,7 @@ class MemArbiterFPGA(peripheries: Seq[MMIOModule], memoryLinks: Seq[MemIO], mems
         io.icache.resp.bits.data := iDataOut
         iDataOutReg := iDataOut
       }
-      io.dcache.resp.bits.data := DontCare
+      io.dcache.resp.bits.data := dDataOutReg
     }
     is(sWaitID) {
       io.icache.resp.valid := 0.B
@@ -230,8 +230,8 @@ class MemArbiterFPGA(peripheries: Seq[MMIOModule], memoryLinks: Seq[MemIO], mems
 
       iInnerValid := 1.B //Always high when waiting for itself
       dInnerValid := 1.B
-      io.icache.resp.bits.data := DontCare
-      io.dcache.resp.bits.data := DontCare
+      io.icache.resp.bits.data := iDataOutReg
+      io.dcache.resp.bits.data := dDataOutReg
     }
   }
 
@@ -363,7 +363,10 @@ class MemArbiterFPGA(peripheries: Seq[MMIOModule], memoryLinks: Seq[MemIO], mems
 
   //Peripherals
   for ((module, mmio) <- peripheries.zip(io.mmios)) {
-    mmio.req.bits.addr := address
+    println("MMIO numBytes")
+    println(module.moduleName)
+    println(module.numBytes)
+    mmio.req.bits.addr := address(log2Ceil(module.numBytes),0) //Only send through the needed part of the address
     mmio.req.bits.mask := mask
     mmio.req.bits.data := data
     when(address >= module.address.asUInt() && address < module.address.U + module.numBytes.U) {
