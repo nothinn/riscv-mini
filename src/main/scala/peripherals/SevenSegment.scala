@@ -136,7 +136,7 @@ class SevenSegmentMMIO(addressIn: Long, indexIn : Int, nameIn : String = "SevenS
   val address = addressIn
   val moduleName = nameIn
 
-  val numBytes = 1
+  val numBytes = 2
   
   val sevenSegment = Module(new SevenSegment(32000000))
 
