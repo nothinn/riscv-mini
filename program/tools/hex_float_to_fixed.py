@@ -35,11 +35,7 @@ def binfloat_to_binfixed(b):
 
     hexStr = "%0.8X" % val
 
-
-
     return hexStr
-
-
 
 #binfloat_to_binfixed("40866666")
 
@@ -55,14 +51,9 @@ pattern = 'Disassembly of section (.+):'
 with open(dump) as f:
     lines = f.readlines()
 
-
-
 validSection = False
 
-
 flws = []
-
-
 for line in lines:
 
     #Check if new section
@@ -85,7 +76,6 @@ for line in lines:
                     out = int(re.match(".*# ([0-9a-f]+) <.*",line).group(1),16)
                     flws.append(out)
 
-#print(flws)
 
 #Save each one as a set of byte addresses
 flw_bytes = []
@@ -95,10 +85,6 @@ for flw in flws:
         addresses.append(flw + i + int(offs,16))
     
     flw_bytes.append(addresses)
-
-#print(flw_bytes)
-
-
 
 #Go through the hex file:
 pattern = ":([0-9A-F][0-9A-F])([0-9A-F][0-9A-F][0-9A-F][0-9A-F])([0-9A-F][0-9A-F])([0-9A-F]*)([0-9A-F][0-9A-F])"

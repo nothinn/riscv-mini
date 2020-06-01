@@ -6,12 +6,10 @@ from intervaltree import Interval, IntervalTree
 
 import re
 
-
 dumped = sys.argv[1]
 logFile    = sys.argv[2]
 
 tree = IntervalTree()
-
 
 startInterval = 0
 endInterval   = 0
@@ -40,8 +38,6 @@ with open(dumped) as f:
                 startInterval = 0
                 endInterval = 0
 
-
-
 #Update intervalTree with running time
 with open(logFile) as f:
     match = "Key: 0x([0-9a-f]+), value:([0-9]+)"
@@ -55,7 +51,6 @@ with open(logFile) as f:
             tree.remove(Interval(old[0].begin,old[0].end, old[0].data))
             #print(old[0].begin,old[0].end, old[0].data)
             tree[old[0].begin:old[0].end] = (old[0].data[0],old[0].data[1]+number)
-
 
 
 funcList = []

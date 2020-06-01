@@ -30,6 +30,8 @@ lastBytes = 0
 
 first = True
 
+counter = 0
+
 address = 0 #Base address
 for line in lines:
     match = re.match(pattern,line)
@@ -67,6 +69,7 @@ for line in lines:
         for dat in data_split:
             outfiles[indexed%8].write(dat + "\n")
             indexed = indexed + 1
+            counter += 1
 
 
     if record == "04":
@@ -76,3 +79,6 @@ for line in lines:
 
 for file in outfiles:
     file.close()
+
+print("Number of bytes without skips:", counter)
+print("Number of bytes with skips   :", indexed)

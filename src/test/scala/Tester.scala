@@ -20,6 +20,7 @@ import org.scalatest.prop.Tables.Table
 import java.io._
 import chiseltest.legacy.backends.verilator.VerilatorFlags
 
+
 class TestFPGAReset(dut: FPGASoC) extends PeekPokeTester(dut) {
   val frequency = 32000000
   val baudrate = 115200
@@ -67,18 +68,25 @@ class TestFirmwareLogging extends FlatSpec with ChiselScalatestTester with Match
   //This test logs the value of PC every cycle, to see where the most time is spent.
   behavior of("FPGA SoC system")
 
-  //val path = "program/tests/tf_micro_speech_test/bin/main.hex"
-  val path = "program/tests/tf_micro_speech/bin/main.hex"
+  //print("Starting test")
+
+  val path = "program/tests/tf_micro_speech_test/bin/main.hex"
+  //val path = "program/tests/tf_hello_world_test/bin/main.hex"
+  //val path = "program/tests/tf_micro_speech/bin/main.hex"
   
   "tf_micro_speech" should "print ~~~ALL TESTS PASSED~~~" in {
 
       implicit val p = (new FPGAConfig).toInstance
 
-      test(new FPGASoC(memPath = path)).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation, VerilatorFlags(Seq("--trace-depth 1", "--threads 12")))) { dut => 
+      test(new FPGASoC(memPath = path)).withAnnotations(Seq(VerilatorBackendAnnotation,// WriteVcdAnnotation,
+                                         VerilatorFlags(Seq("--trace-depth 1",
+                                                            "--threads 12"
+                                                            )))) { dut => 
 
         val pcMap = HashMap[Long, Long]().withDefaultValue(0.toLong)
 
         fork{
+          //print("Forked")
           while(true){
 
             dut.io.debugBools(1).expect(1.B)
@@ -125,11 +133,6 @@ class TestFirmwareLogging extends FlatSpec with ChiselScalatestTester with Match
           char = char & 0xff
           string = string + char.toChar
 
-          //println(char.toChar)
-        
-          //print("Got char: ")
-          //println(char.toHexString)
-          
           if (char.toChar == '\n') {
 
             if(string.contains("~~~ALL TESTS PASSED~~~")){
@@ -165,19 +168,17 @@ class TestFirmwareLogging extends FlatSpec with ChiselScalatestTester with Match
 
         dut.clock.step(10)
       }
-
-
   }
-
-
 }
 
 
 
-class TestAllFirmwareTest extends FlatSpec with ChiselScalatestTester with Matchers with ParallelTestExecution {
+class TestAllFirmwareTest extends FlatSpec with ChiselScalatestTester with Matchers 
+                                                          //with ParallelTestExecution
+                                                        {
 
 
-  def readFile(filename: String): Seq[String] = {
+  def readFile(filename: String): Seq[String] = { //TODO: Add an "argument" to the test file that is the expected runtime.
     val bufferedSource = io.Source.fromFile(filename)
     val lines = (for (line <- bufferedSource.getLines()) yield line).toList
     bufferedSource.close
@@ -204,7 +205,8 @@ class TestAllFirmwareTest extends FlatSpec with ChiselScalatestTester with Match
 
       implicit val p = (new FPGAConfig).toInstance
 
-      test(new FPGASoC(memPath = hexPath)).withAnnotations(Seq(VerilatorBackendAnnotation)) { dut => 
+      test(new FPGASoC(memPath = hexPath)).withAnnotations(Seq(VerilatorBackendAnnotation,// WriteVcdAnnotation,
+                                              VerilatorFlags(Seq("--threads 12")))) { dut => 
 
 
         fork{
@@ -297,7 +299,7 @@ class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matc
 
     implicit val p = (new FPGAConfig).toInstance
 
-    test(new FPGASoC(memPath = "program/main.hex")).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new FPGASoC(memPath = "program/main.fixed.hex")).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       fork {
 
         val hashMap: HashMap[Int, Int] = new HashMap() //Address to byte
@@ -336,7 +338,7 @@ class TestFPGAMultiProcess extends FlatSpec with ChiselScalatestTester with Matc
         }
         bufferedSource.close
 
-        val MAXSTEPS = 10000000
+        val MAXSTEPS = 2000000
         dut.clock.setTimeout(MAXSTEPS + 4)
         var steps = 0
 

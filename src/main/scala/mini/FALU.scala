@@ -19,8 +19,6 @@ object FALU {
   val FALU_CNV_W  = 6.U(4.W)
   val FALU_CNV_WU = 7.U(4.W)
   
-
-
   
   val FALU_XXX    = 15.U(4.W)
 }
@@ -55,8 +53,6 @@ class FALUImpl(implicit p: Parameters) extends FALU()(p) {
   val op2 = io.rs2.asFixedPoint(16.BP)
   val op3 = io.rs3.asFixedPoint(16.BP)
 
-  
-
   val result = WireDefault(0.F(64.W,32.BP))
   //ToDo: Implement limiter such that too high values will get clipped to max/min
   result := MuxLookup(io.alu_op, op2, Seq(
@@ -80,10 +76,6 @@ class FALUImpl(implicit p: Parameters) extends FALU()(p) {
     clipped := result
   }
 
-  //dontTouch(clipped)
-  //dontTouch(MAX_VALUE)
-  //dontTouch(MIN_VALUE)
-  
 
   when(io.alu_op === FALU_CNV_W || io.alu_op === FALU_CNV_WU){
     io.out := (op1.asUInt) >> 16
