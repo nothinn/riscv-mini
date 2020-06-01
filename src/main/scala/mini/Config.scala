@@ -47,7 +47,7 @@ class FPGAConfig extends Config((site, here, up) => {
     case Trace => false
     case BuildALU    => (p: Parameters) => Module(new ALUArea()(p))
     case BuildFALU   => (p: Parameters) => Module(new FALUImpl()(p))
-    case BuildMALU   => (p: Parameters) => Module(new MALUImplSingleCycle()(p))
+    case BuildMALU   => (p: Parameters) => Module(new MALUImplSingleCycleMulOnly()(p))
     case BuildImmGen => (p: Parameters) => Module(new ImmGenWire()(p))
     case BuildBrCond => (p: Parameters) => Module(new BrCondArea()(p))
     case FREQ => 2000000

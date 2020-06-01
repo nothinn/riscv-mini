@@ -1,5 +1,4 @@
 // See LICENSE for license details.
-
 package mini
 
 import chisel3._
@@ -45,8 +44,6 @@ class MALUImplSingleCycle(implicit p: Parameters) extends MALU()(p) {
   val op1 = io.rs1
   val op2 = io.rs2
 
-  
-
   //ToDo: Implement limiter such that too high values will get clipped to max/min
   io.out := MuxLookup(io.alu_op, DontCare, Seq(
       MALU_MUL  -> (op1 * op2)(xlen-1,0),
@@ -63,5 +60,27 @@ class MALUImplSingleCycle(implicit p: Parameters) extends MALU()(p) {
       MALU_XXX  -> DontCare
       
       ))
+}
 
+class MALUImplSingleCycleMulOnly(implicit p: Parameters) extends MALU()(p) {
+
+  val op1 = io.rs1
+  val op2 = io.rs2
+
+  //ToDo: Implement limiter such that too high values will get clipped to max/min
+  io.out := MuxLookup(io.alu_op, DontCare, Seq(
+      MALU_MUL  -> (op1 * op2)(xlen-1,0),
+      MALU_MULH  -> (op1.asSInt * op2.asSInt())(xlen*2-1, xlen).asUInt,
+      MALU_MULHU  -> (op1 * op2)(xlen*2-1, xlen),
+      MALU_MULHSU  -> (op1.asSInt * op2)(xlen*2-1, xlen).asUInt,
+      
+      //MALU_DIV -> (op1.asSInt / op2.asSInt()).asUInt,
+      //MALU_DIVU -> (op1 / op2),
+
+      //MALU_REM -> (op1.asSInt % op2.asSInt()).asUInt,
+      //MALU_REMU-> (op1 % op2),
+
+      MALU_XXX  -> DontCare
+      
+      ))
 }
