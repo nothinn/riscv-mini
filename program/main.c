@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <math.h>
+
 extern void printstr(const char *s, int length);
 
 #define SEVEN_SEGMENT (*(volatile unsigned int *)0x80000010)
@@ -16,40 +18,132 @@ extern void printstr(const char *s, int length);
 
 #define XADC_FIRST (*(volatile unsigned int *)0x8000107C)
 
+#define ADC_START_ADDR (*(volatile unsigned int *)0x80002000)
+#define ADC_AND_MASK (*(volatile unsigned int *)  0x80002004)
+#define ADC_OR_MASK (*(volatile unsigned int *)   0x80002008)
+#define ADC_SAMPLERATE (*(volatile unsigned int *)0x8000200C)
+#define ADC_SETTINGS (*(volatile unsigned int *)  0x80002010)
+
+#define GPIO_LEDS   (*(volatile unsigned int *)  0x80003000)
+#define GPIO_INPUTS (*(volatile unsigned int *)  0x80003004)
+
+
+#define FFT_AND_MASK (*(volatile unsigned int *)0x80003000)
+#define FFT_OR_MASK (*(volatile unsigned int *)0x80003004)
+#define FFT_SETTINGS (*(volatile unsigned int *)0x80003008)
+
+
 #define BLOCK_MEM 0x20000000
+
+
+#define AUDIO_MEM 0x30000000
+
+#include <stdarg.h>
+
+int sprintf(char *restrict s, const char *restrict fmt, ...)
+{
+	int ret;
+	va_list ap;
+	va_start(ap, fmt);
+	ret = vsprintf(s, fmt, ap);
+	va_end(ap);
+	return ret;
+}
 
 void loop(){
 
-    float tmp = 4.2;
+
+    volatile unsigned short* value = AUDIO_MEM;
+
     while (1)
     {
-        //SEVEN_SEGMENT = XADC_FIRST;
+        SEVEN_SEGMENT = value[0];
+    }
+}
 
-        tmp += 1;
+#define one 0xff
+void fillValues(){
 
-        SEVEN_SEGMENT = tmp;
-        tmp -= 0.5;
-        tmp *= 2.5;
-        //SEVEN_SEGMENT = tmp;
-        //printf("Float = %f",tmp);
+    short vector[] = {one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0,
+        one,one,one,0,0,0,0,0,one,one,one,0,0,0,0,0};
+
+    for(int i = 0; i < 128; i++){
+        ((int*)AUDIO_MEM)[i] = vector[i];
+    }
+
+    for(int i = 0; i < 128; i++){
+        if(((int*)AUDIO_MEM)[i] != vector[i]){
+            printstr("Failed",sizeof("Failed"));
+        };
+    }
+}
+
+void calcFFT(){
+    FFT_AND_MASK = 256*4-1;
+    FFT_OR_MASK = AUDIO_MEM;
+    FFT_SETTINGS = 0x1; //Start bit
+
+    while(FFT_SETTINGS != 0); //While running    
+}
+
+void printFFT(){
+
+    char buffer[512];
+
+    volatile unsigned int* value = AUDIO_MEM + 128*4;
+
+    int length = 0;
+
+    for(int i = 0; i < 128; i++){
+        int val = value[i];
+
+
+
+        length = sprintf(buffer,"%03i, 0x%08x",i,val);
+
+
+        
+        printstr(buffer,length);
+        printstr("\n",sizeof("\n"));
+        
     }
 }
 
 int main()
 {
+
     SEVEN_SEGMENT = 0x4242;
-    printstr("This is the new main2\n", sizeof("This is the new main2\n"));
-    printstr(__TIME__, sizeof(__TIME__));
-    printstr("\n",sizeof("\n"));
+    //ADC_START_ADDR = AUDIO_MEM;
+    //ADC_AND_MASK   = 0x400 - 1; //1024 addresses
+    //ADC_AND_MASK   = 0x010 - 1; //1024 addresses
+    //ADC_OR_MASK    = AUDIO_MEM; //Always save at AUDIO mem
+    //ADC_SAMPLERATE = 200;
+    //ADC_SETTINGS   = 1;
+    
+    printstr("Applied settings\n",sizeof("Applied settings\n"));
+
+    //loop();
+
+    fillValues();
+
+    printstr("Filled\n",sizeof("Filled\n"));
 
 
-    //Check that printing works
-    printstr("~~~ALL TESTS PASSED~~~",sizeof("~~~ALL TESTS PASSED~~~"));
+    calcFFT();
 
-    int value = 0;
+    printstr("Calculated\n",sizeof("Calculated\n"));
+
+    printFFT();
+
+    printstr("Done\n",sizeof("Done\n"));
 
 
-    loop();
 
     return 0;
 }

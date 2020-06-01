@@ -29,11 +29,12 @@ romgen: test
 all: clean $(CUSTOM_BMARK_BIN) $(CUSTOM_BMARK_BIN).hex $(CUSTOM_BMARK_BIN).dump
 
 test: clean
-	$(RISCV_GCC) -I$(RISCV_TEST_DIR)/env -I$(RISCV_TEST_DIR)/common -static -std=gnu99 -O2 -mabi=ilp32 -march=rv32i -o main.riscv main.c $(RISCV_TEST_DIR)/common/crt.S $(RISCV_TEST_DIR)/common/UART.c -static -nostdlib -nostartfiles -lm -lgcc -T $(RISCV_TEST_DIR)/common/program.ld
+	$(RISCV_GCC) -I$(RISCV_TEST_DIR)/env -I$(RISCV_TEST_DIR)/common -static -std=gnu99 -O2 -mabi=ilp32 -march=rv32i -o main.riscv main.c $(RISCV_TEST_DIR)/common/crt.S $(RISCV_TEST_DIR)/common/UART.c -static -nostartfiles -lm -lgcc -T $(RISCV_TEST_DIR)/common/program.ld
 	$(RISCV_OBJDUMP) -D main.riscv > main.dump.text
 	$(RISCV_OBJCOPY) --change-addresses -0x001fe00000 -O ihex main.riscv main.hex -g
-	python3 tools/hex_float_to_fixed.py main.hex main.dump.text -0x001fe00000
-	mv main.hex.fixed main.fixed.hex
+	#python3 tools/hex_float_to_fixed.py main.hex main.dump.text -0x001fe00000
+	#mv main.hex.fixed main.fixed.hex
+	mv main.hex main.fixed.hex
 	python3 tools/ihex2hex.py main.fixed.hex
 	$(RISCV_OBJCOPY) -I ihex -O binary main.fixed.hex main.bin
 	
