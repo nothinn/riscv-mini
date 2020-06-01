@@ -71,6 +71,7 @@ class MyMem(val size: Int, XLEN: Int, memPath : String = "")(implicit val p: Par
 
   //For preloading memory in simulation
   if (memPath.length() > 0){
+    print("Preloading memory from " + memPath)
     loadMemoryFromFile(mem, memPath)
   }
 
