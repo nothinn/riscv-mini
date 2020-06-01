@@ -81,7 +81,7 @@ class UART(frequency: Int, baudRate: Int) extends Module {
 }
 
 //MMIO wrapper
-class UARTMMIO(frequency: Int, addressIn: Long, indexIn: Int, nameIn: String = "SevenSeg")(implicit val p: Parameters)
+class UARTMMIO(frequency: Int, addressIn: Long, indexIn: Int, nameIn: String = "UART")(implicit val p: Parameters)
     extends MMIOModule
     with MemLink {
   val mmio = IO(new MMIO(log2Ceil(12))) //This many bits needed for address
