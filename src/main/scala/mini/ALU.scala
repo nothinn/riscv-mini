@@ -46,7 +46,6 @@ abstract class ALU(implicit val p: Parameters) extends Module with CoreParams {
 class ALUSimple(implicit p: Parameters) extends ALU()(p) {
   val shamt = io.B(4,0).asUInt
 
-
   io.out := MuxLookup(io.alu_op, io.B, Seq(
       ALU_ADD  -> (io.A + io.B),
       ALU_SUB  -> (io.A - io.B),
@@ -61,7 +60,7 @@ class ALUSimple(implicit p: Parameters) extends ALU()(p) {
       ALU_COPY_A -> io.A,
       
       //Custom instruction
-      ALU_SWAP -> Reverse(io.A)
+      ALU_SWAP -> io.A(7,0) ## io.A(15,8) ## io.A(23,16) ## io.A(31,24) 
       ))
 
   io.sum := io.A + Mux(io.alu_op(0), -io.B, io.B)
@@ -86,7 +85,7 @@ class ALUArea(implicit p: Parameters) extends ALU()(p) {
     Mux(io.alu_op === ALU_OR,  (io.A | io.B),
     Mux(io.alu_op === ALU_XOR, (io.A ^ io.B), 
     //Custom instruction
-    Mux(io.alu_op === ALU_SWAP, Reverse(io.A),
+    Mux(io.alu_op === ALU_SWAP, io.A(7,0) ## io.A(15,8) ## io.A(23,16) ## io.A(31,24),
 
     Mux(io.alu_op === ALU_COPY_A, io.A, io.B)))))))))
 
